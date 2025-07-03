@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Mic, Settings, Clock, Users, Activity } from "lucide-react";
+import { FileText, Mic, Settings, Clock, Users, Activity, LogOut } from "lucide-react";
+import { useAuth } from "@/components/AuthProvider";
 import AudioRecorder from "@/components/AudioRecorder";
 import ReportGenerator from "@/components/ReportGenerator";
 import TemplateManager from "@/components/TemplateManager";
@@ -12,6 +13,7 @@ import RecentReports from "@/components/RecentReports";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const { user, signOut } = useAuth();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -29,9 +31,12 @@ const Index = () => {
               <Badge variant="secondary" className="bg-green-100 text-green-800">
                 AI Powered
               </Badge>
-              <Button variant="outline" size="sm">
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
+              <span className="text-sm text-gray-600">
+                Welcome, {user?.email}
+              </span>
+              <Button variant="outline" size="sm" onClick={signOut}>
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
               </Button>
             </div>
           </div>
