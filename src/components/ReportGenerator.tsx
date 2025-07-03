@@ -3,14 +3,26 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Download, Send, Copy, Wand2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { FileText, Download, Send, Copy, Wand2, Shield, AlertTriangle } from "lucide-react";
+import { useRecordings } from "@/hooks/useRecordings";
+import { useReports, useGenerateReport } from "@/hooks/useReports";
+import { useTemplates } from "@/hooks/useTemplates";
+import { toast } from "sonner";
 
 const ReportGenerator = () => {
   const [selectedReport, setSelectedReport] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedContent, setGeneratedContent] = useState("");
+  const [selectedRecording, setSelectedRecording] = useState("");
+  const [selectedTemplate, setSelectedTemplate] = useState("");
+  const [customInstructions, setCustomInstructions] = useState("");
+  const [aiProvider, setAiProvider] = useState("openai");
+  const [apiKey, setApiKey] = useState("");
+  
+  const { data: recordings } = useRecordings();
+  const { data: templates } = useTemplates();
+  const generateReportMutation = useGenerateReport();
 
   const reportTypes = [
     { value: "consultation", label: "Consultation Note" },
@@ -19,102 +31,142 @@ const ReportGenerator = () => {
     { value: "discharge", label: "Discharge Summary" },
   ];
 
-  const generateReport = () => {
-    setIsGenerating(true);
-    
-    // Simulate AI generation
-    setTimeout(() => {
-      const sampleContent = getSampleContent(selectedReport);
-      setGeneratedContent(sampleContent);
-      setIsGenerating(false);
-    }, 3000);
-  };
+  const aiProviders = [
+    { value: "openai", label: "OpenAI GPT-4" },
+    { value: "groq", label: "Groq Llama" },
+    { value: "anthropic", label: "Claude" },
+  ];
 
-  const getSampleContent = (type: string) => {
-    switch (type) {
-      case "consultation":
-        return `CONSULTATION NOTE
+  const generateReport = async () => {
+    if (!selectedRecording || !selectedReport) {
+      toast.error("Please select a recording and report type");
+      return;
+    }
 
-Date: ${new Date().toLocaleDateString()}
-Patient: John Doe
-DOB: 01/15/1980
+    if (!apiKey) {
+      toast.error("Please enter your AI API key");
+      return;
+    }
 
-CHIEF COMPLAINT:
-Patient presents with chest pain and shortness of breath.
-
-HISTORY OF PRESENT ILLNESS:
-45-year-old male reports onset of chest pain 2 days ago, described as sharp, intermittent, worsening with deep inspiration. Associated with mild shortness of breath on exertion.
-
-PHYSICAL EXAMINATION:
-- Vital Signs: BP 130/85, HR 78, RR 16, Temp 98.6°F
-- General: Alert, oriented, in no acute distress
-- Cardiovascular: Regular rate and rhythm, no murmurs
-- Respiratory: Clear to auscultation bilaterally
-
-ASSESSMENT AND PLAN:
-Likely musculoskeletal chest pain. Recommend NSAIDs, rest, and follow-up if symptoms persist.`;
-
-      case "soap":
-        return `SOAP NOTE
-
-SUBJECTIVE:
-Patient reports chest pain for 2 days, sharp and intermittent, worse with inspiration. Denies fever, palpitations, or syncope.
-
-OBJECTIVE:
-- Vitals: BP 130/85, HR 78, RR 16, T 98.6°F
-- Physical exam notable for chest wall tenderness
-- No cardiac murmurs or irregular rhythms
-
-ASSESSMENT:
-Musculoskeletal chest pain, likely costochondritis
-
-PLAN:
-1. NSAIDs for pain management
-2. Rest and activity modification
-3. Return if symptoms worsen or persist beyond 1 week`;
-
-      case "followup":
-        return `Subject: Follow-up Instructions - Chest Pain Consultation
-
-Dear John,
-
-Thank you for your visit today regarding your chest pain concerns.
-
-Based on our evaluation, your symptoms appear to be related to musculoskeletal causes, likely costochondritis.
-
-RECOMMENDATIONS:
-• Take ibuprofen 400mg every 6-8 hours with food
-• Apply ice packs for 15-20 minutes several times daily
-• Avoid strenuous activities for the next few days
-
-FOLLOW-UP:
-Please contact our office if:
-- Pain worsens or becomes severe
-- You develop shortness of breath at rest
-- You experience palpitations or dizziness
-
-If symptoms persist beyond one week, please schedule a follow-up appointment.
-
-Best regards,
-Dr. Smith`;
-
-      default:
-        return "Please select a report type to generate content.";
+    try {
+      await generateReportMutation.mutateAsync({
+        recordingId: selectedRecording,
+        reportType: selectedReport,
+        templateId: selectedTemplate || undefined,
+        aiProvider,
+        apiKey,
+        customInstructions
+      });
+      
+      toast.success("Report generated successfully!");
+    } catch (error) {
+      toast.error("Failed to generate report");
+      console.error(error);
     }
   };
 
   return (
     <div className="space-y-6">
+      {/* HIPAA Compliance Notice */}
+      <Card className="border-blue-200 bg-blue-50">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Shield className="w-5 h-5 text-blue-600" />
+            <CardTitle className="text-blue-800">HIPAA Compliance Notice</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5" />
+            <div className="text-sm text-blue-700">
+              <p className="font-medium mb-2">Important: Patient Data Protection</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>All patient data is encrypted in transit and at rest</li>
+                <li>AI processing occurs through secure, HIPAA-compliant channels</li>
+                <li>API keys are handled securely and not stored permanently</li>
+                <li>Generated reports are stored with full encryption</li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* AI Configuration */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Wand2 className="w-5 h-5" />
+            AI Configuration
+          </CardTitle>
+          <CardDescription>Configure your AI provider for report generation</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">AI Provider</label>
+              <Select value={aiProvider} onValueChange={setAiProvider}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select AI provider" />
+                </SelectTrigger>
+                <SelectContent>
+                  {aiProviders.map((provider) => (
+                    <SelectItem key={provider.value} value={provider.value}>
+                      {provider.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">API Key</label>
+              <Input
+                type="password"
+                placeholder="Enter your API key"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+              />
+            </div>
+          </div>
+          
+          <div>
+            <label className="text-sm font-medium mb-2 block">Custom Instructions (Optional)</label>
+            <Textarea
+              placeholder="Add specific instructions for the AI (e.g., focus on certain aspects, use specific terminology)"
+              value={customInstructions}
+              onChange={(e) => setCustomInstructions(e.target.value)}
+              rows={3}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Report Generation */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5" />
-            Report Generator
+            Generate Report
           </CardTitle>
           <CardDescription>Generate AI-powered medical reports from your recordings</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Recording Session</label>
+              <Select value={selectedRecording} onValueChange={setSelectedRecording}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select recording" />
+                </SelectTrigger>
+                <SelectContent>
+                  {recordings?.map((recording) => (
+                    <SelectItem key={recording.id} value={recording.id}>
+                      {recording.title} - {recording.patients?.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
             <div>
               <label className="text-sm font-medium mb-2 block">Report Type</label>
               <Select value={selectedReport} onValueChange={setSelectedReport}>
@@ -130,16 +182,20 @@ Dr. Smith`;
                 </SelectContent>
               </Select>
             </div>
+            
             <div>
-              <label className="text-sm font-medium mb-2 block">Recording Session</label>
-              <Select>
+              <label className="text-sm font-medium mb-2 block">Template (Optional)</label>
+              <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select recording" />
+                  <SelectValue placeholder="Select template" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="session1">Today 2:30 PM - John Doe</SelectItem>
-                  <SelectItem value="session2">Today 1:15 PM - Jane Smith</SelectItem>
-                  <SelectItem value="session3">Yesterday 4:45 PM - Mike Johnson</SelectItem>
+                  <SelectItem value="">No template</SelectItem>
+                  {templates?.map((template) => (
+                    <SelectItem key={template.id} value={template.id}>
+                      {template.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -147,62 +203,24 @@ Dr. Smith`;
 
           <Button 
             onClick={generateReport} 
-            disabled={!selectedReport || isGenerating}
+            disabled={!selectedRecording || !selectedReport || !apiKey || generateReportMutation.isPending}
             className="w-full"
+            size="lg"
           >
-            {isGenerating ? (
+            {generateReportMutation.isPending ? (
               <>
                 <Wand2 className="w-4 h-4 mr-2 animate-spin" />
-                Generating Report...
+                Generating Report with AI...
               </>
             ) : (
               <>
                 <Wand2 className="w-4 h-4 mr-2" />
-                Generate Report
+                Generate Report with AI
               </>
             )}
           </Button>
         </CardContent>
       </Card>
-
-      {generatedContent && (
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle>Generated Report</CardTitle>
-                <CardDescription>AI-generated medical documentation</CardDescription>
-              </div>
-              <Badge className="bg-green-100 text-green-800">
-                Ready for Review
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="bg-white border rounded-lg p-6 min-h-[400px] font-mono text-sm whitespace-pre-line">
-              {generatedContent}
-            </div>
-            
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm">
-                <Copy className="w-4 h-4 mr-2" />
-                Copy
-              </Button>
-              <Button variant="outline" size="sm">
-                <Download className="w-4 h-4 mr-2" />
-                Download PDF
-              </Button>
-              <Button variant="outline" size="sm">
-                <Send className="w-4 h-4 mr-2" />
-                Send Email
-              </Button>
-              <Button size="sm">
-                Save to EMR
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };

@@ -24,14 +24,27 @@ export const useGenerateReport = () => {
     mutationFn: async ({ 
       recordingId, 
       reportType, 
-      templateId 
+      templateId,
+      aiProvider = 'openai',
+      apiKey,
+      customInstructions
     }: { 
       recordingId: string; 
       reportType: string; 
       templateId?: string;
+      aiProvider?: string;
+      apiKey: string;
+      customInstructions?: string;
     }) => {
       const { data, error } = await supabase.functions.invoke('generate-report', {
-        body: { recordingId, reportType, templateId }
+        body: { 
+          recordingId, 
+          reportType, 
+          templateId, 
+          aiProvider, 
+          apiKey,
+          customInstructions 
+        }
       });
       
       if (error) throw error;

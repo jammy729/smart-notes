@@ -4,12 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Mic, Settings, Clock, Users, Activity, LogOut } from "lucide-react";
+import { FileText, Mic, Settings, Clock, Users, Activity, LogOut, Shield } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import AudioRecorder from "@/components/AudioRecorder";
 import ReportGenerator from "@/components/ReportGenerator";
 import TemplateManager from "@/components/TemplateManager";
 import RecentReports from "@/components/RecentReports";
+import HIPAACompliance from "@/components/HIPAACompliance";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -29,6 +30,10 @@ const Index = () => {
             </div>
             <div className="flex items-center space-x-4">
               <Badge variant="secondary" className="bg-green-100 text-green-800">
+                <Shield className="w-3 h-3 mr-1" />
+                HIPAA Compliant
+              </Badge>
+              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
                 AI Powered
               </Badge>
               <span className="text-sm text-gray-600">
@@ -46,7 +51,7 @@ const Index = () => {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-white">
+          <TabsList className="grid w-full grid-cols-5 bg-white">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <Activity className="w-4 h-4" />
               Dashboard
@@ -62,6 +67,10 @@ const Index = () => {
             <TabsTrigger value="templates" className="flex items-center gap-2">
               <Settings className="w-4 h-4" />
               Templates
+            </TabsTrigger>
+            <TabsTrigger value="compliance" className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              HIPAA
             </TabsTrigger>
           </TabsList>
 
@@ -147,6 +156,10 @@ const Index = () => {
 
           <TabsContent value="templates">
             <TemplateManager />
+          </TabsContent>
+
+          <TabsContent value="compliance">
+            <HIPAACompliance />
           </TabsContent>
         </Tabs>
       </div>
